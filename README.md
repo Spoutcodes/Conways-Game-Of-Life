@@ -1,5 +1,6 @@
-## Conway's Game of Life
-
+![favicon](https://github.com/user-attachments/assets/6bbf654c-3000-4803-9524-62eb47b3f4af)
+---
+### Conway's Game of Life
 An interactive browser-based implementation of **Conway’s Game of Life**, built and maintained by [Spoutcodes](https://github.com/Spoutcodes).
 
 ### Overview
