@@ -39,17 +39,30 @@ function clearGrid(){saveState();grid.clear();drawGrid();}
 function randomFill(){saveState();for(let y=-20;y<20;y++)for(let x=-20;x<20;x++)if(Math.random()<0.2)setCell(x,y,1);drawGrid();}
 function worldToCell(cx,cy){const x=(cx-offsetX)/(cellSize*zoom),y=(cy-offsetY)/(cellSize*zoom);return[Math.floor(x),Math.floor(y)];}
 
+// Bresenham's line algorithm to fill cells between two points
+function drawLine(x0,y0,x1,y1,mode){
+ const dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1;
+ let err=dx-dy,x=x0,y=y0;
+ while(true){
+  setCell(x,y,mode==="add");
+  if(x===x1&&y===y1)break;
+  const e2=2*err;
+  if(e2>-dy){err-=dy;x+=sx;}
+  if(e2<dx){err+=dx;y+=sy;}
+ }
+}
+
 // Drawing / panning
-let drawing=false,drawMode=null,dragging=false,lastX,lastY;
+let drawing=false,drawMode=null,dragging=false,lastX,lastY,lastCellX,lastCellY;
 canvas.addEventListener("mousedown",e=>{
  if(e.button===2){dragging=true;lastX=e.clientX;lastY=e.clientY;}
- else if(e.button===0){const[x,y]=worldToCell(e.clientX,e.clientY);saveState();drawMode=getCell(x,y)?"erase":"add";drawing=true;setCell(x,y,drawMode==="add");drawGrid();}
+ else if(e.button===0){const[x,y]=worldToCell(e.clientX,e.clientY);saveState();drawMode=getCell(x,y)?"erase":"add";drawing=true;lastCellX=x;lastCellY=y;setCell(x,y,drawMode==="add");drawGrid();}
 });
 canvas.addEventListener("mouseup",e=>{if(e.button===2)dragging=false;if(e.button===0){drawing=false;drawMode=null;}});
 canvas.addEventListener("contextmenu",e=>e.preventDefault());
 canvas.addEventListener("mousemove",e=>{
  if(dragging){offsetX+=e.clientX-lastX;offsetY+=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;drawGrid();}
- else if(drawing&&drawMode){const[x,y]=worldToCell(e.clientX,e.clientY);setCell(x,y,drawMode==="add");drawGrid();}
+ else if(drawing&&drawMode){const[x,y]=worldToCell(e.clientX,e.clientY);if(x!==lastCellX||y!==lastCellY){drawLine(lastCellX,lastCellY,x,y,drawMode);lastCellX=x;lastCellY=y;drawGrid();}}
 });
 canvas.addEventListener("wheel",e=>{
  e.preventDefault();const zoomFactor=1.1,mx=e.offsetX,my=e.offsetY,bx=(mx-offsetX)/(zoom*cellSize),by=(my-offsetY)/(zoom*cellSize);
