@@ -29,7 +29,7 @@
   <button id="random">
     <svg viewBox="0 0 24 24"><path d="M4 4h2v2H4V4zm3 3h2v2H7V7zm3 3h2v2h-2v-2zm3 3h2v2h-2v-2zm3 3h2v2h-2v-2z"/></svg> Random
   </button>
-  <label>Speed:
+  <label for="speed">Speed: <span id="speedValue">200ms</span>
     <input type="range" id="speed" min="50" max="1000" value="200">
   </label>
   <select id="presets">
@@ -60,7 +60,7 @@
   </div>
 </div>
 
-<script src=conways.js></script>
+<script src="conways.js"></script>
 </body>
 </html>
 

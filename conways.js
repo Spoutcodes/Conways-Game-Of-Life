@@ -3,8 +3,26 @@ function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.inne
 window.addEventListener("resize",resizeCanvas);
 let cellSize=10,offsetX=window.innerWidth/2,offsetY=window.innerHeight/2,zoom=1;
 let grid=new Map(),running=false,timer=null,speed=document.getElementById("speed").value;
-const undoStack=[],redoStack=[],MAX_HISTORY=50;
-function saveState(){if(running)return;undoStack.push(new Map(grid));if(undoStack.length>MAX_HISTORY)undoStack.shift();redoStack.length=0;}
+ const undoStack=[],redoStack=[],MAX_HISTORY=50;
+ function saveState(){
+  if(running)return;
+  const prev=undoStack[undoStack.length-1];
+  if(prev&&prev.size===grid.size){
+   let same=true;
+   for(const k of prev.keys()){
+    if(!grid.has(k)){same=false;break;}
+   }
+   if(same){
+    for(const k of grid.keys()){
+     if(!prev.has(k)){same=false;break;}
+    }
+   }
+   if(same)return;
+  }
+  undoStack.push(new Map(grid));
+  if(undoStack.length>MAX_HISTORY)undoStack.shift();
+  redoStack.length=0;
+ }
 function key(x,y){return`${x},${y}`;}
 function setCell(x,y,v){if(v)grid.set(key(x,y),1);else grid.delete(key(x,y));}
 function getCell(x,y){return grid.has(key(x,y));}
@@ -27,16 +45,29 @@ function nextGen(){saveState();const newGrid=new Map(),checked=new Set();
     const nx=x+dx,ny=y+dy,nk=key(nx,ny);
     if(checked.has(nk))continue;checked.add(nk);
     const n=countNeighbors(nx,ny);
-    if(getCell(nx,ny)){if(n===2||n===3)newGrid.set(nk,1);}else if(n===3)newGrid.set(nk,1);
+    if(getCell(nx,ny)){
+     if(n===2||n===3)newGrid.set(nk,1);
+    }else if(n===3){
+     newGrid.set(nk,1);
+    }
   }}
  grid=newGrid;drawGrid();
 }
 function startStop(){running=!running;const btn=document.getElementById("startStop");
  btn.innerHTML=running?'<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> Stop':'<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Start';
  if(running)run();else clearTimeout(timer);}
-function run(){nextGen();if(running)timer=setTimeout(run,speed);}
-function clearGrid(){saveState();grid.clear();drawGrid();}
-function randomFill(){saveState();for(let y=-20;y<20;y++)for(let x=-20;x<20;x++)if(Math.random()<0.2)setCell(x,y,1);drawGrid();}
+ function run(){nextGen();if(running)timer=setTimeout(run,speed);}
+ function clearGrid(){saveState();grid.clear();drawGrid();}
+ function randomFill(){
+  saveState();
+  grid.clear();
+  for(let y=-20;y<20;y++){
+   for(let x=-20;x<20;x++){
+    if(Math.random()<0.2)setCell(x,y,1);
+   }
+  }
+  drawGrid();
+ }
 function worldToCell(cx,cy){const x=(cx-offsetX)/(cellSize*zoom),y=(cy-offsetY)/(cellSize*zoom);return[Math.floor(x),Math.floor(y)];}
 
 // Bresenham's line algorithm to fill cells between two points
@@ -74,8 +105,14 @@ canvas.addEventListener("wheel",e=>{
 document.getElementById("startStop").onclick=startStop;
 document.getElementById("step").onclick=nextGen;
 document.getElementById("clear").onclick=clearGrid;
-document.getElementById("random").onclick=randomFill;
-document.getElementById("speed").oninput=e=>speed=e.target.value;
+ document.getElementById("random").onclick=randomFill;
+ const speedLabel=document.getElementById("speedValue");
+ const speedInput=document.getElementById("speed");
+ speedLabel.textContent=`${speedInput.value}ms`;
+ speedInput.oninput=e=>{
+  speed=e.target.value;
+  speedLabel.textContent=`${speed}ms`;
+ };
 document.getElementById("resetView").onclick=()=>{offsetX=window.innerWidth/2;offsetY=window.innerHeight/2;zoom=1;drawGrid();};
 
 // Custom popup
@@ -83,12 +120,23 @@ const popupOverlay=document.getElementById("popupOverlay"),popupConfirm=document
 let pendingPreset=null;
 function showPopup(preset){pendingPreset=preset;popupOverlay.style.display="flex";}
 popupCancel.onclick=()=>{popupOverlay.style.display="none";pendingPreset=null;};
-popupConfirm.onclick=()=>{popupOverlay.style.display="none";if(pendingPreset)loadPreset(pendingPreset);pendingPreset=null;};
+ popupConfirm.onclick=()=>{
+  popupOverlay.style.display="none";
+  if(pendingPreset)loadPreset(pendingPreset);
+  pendingPreset=null;
+  document.getElementById("presets").value="";
+ };
 
-document.getElementById("presets").onchange=function(){
- const val=this.value;if(!val)return;
- if(grid.size>0){showPopup(val);} else {loadPreset(val);}
-};
+ document.getElementById("presets").onchange=function(){
+  const val=this.value;
+  if(!val)return;
+  if(grid.size>0){
+   showPopup(val);
+  } else {
+   loadPreset(val);
+   this.value="";
+  }
+ };
 
 function loadPreset(val){
  saveState();grid.clear();
